@@ -13,8 +13,6 @@ php artisan config:cache
 php artisan route:cache
 php artisan migrate --force
 
-touch /var/www/html/database/database.sqlite 2>/dev/null || true
-
 envsubst '${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf
 cp /tmp/nginx.conf /etc/nginx/nginx.conf
 

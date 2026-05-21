@@ -1,7 +1,8 @@
 FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache nginx supervisor sqlite-dev postgresql-dev curl gettext \
-    && docker-php-ext-install pdo pdo_sqlite pdo_pgsql
+    libpng-dev libxml2-dev oniguruma-dev freetype-dev libjpeg-turbo-dev \
+    && docker-php-ext-install pdo pdo_sqlite pdo_pgsql mbstring xml dom gd
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 

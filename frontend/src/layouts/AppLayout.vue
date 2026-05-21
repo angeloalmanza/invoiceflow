@@ -25,51 +25,151 @@ function isActive(path) {
 </script>
 
 <template>
-  <div class="min-h-screen flex">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-slate-900 flex flex-col shrink-0">
-      <div class="h-16 flex items-center px-6 border-b border-white/10">
-        <span class="text-xl font-bold text-white tracking-tight">InvoiceFlow</span>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <!-- Logo: brand identity sempre visibile -->
+      <div class="sidebar-logo">
+        <span class="sidebar-logo-text">InvoiceFlow</span>
       </div>
 
-      <nav class="flex-1 px-4 py-6 space-y-1">
+      <!-- Nav: icona + label, active state con overlay bianco -->
+      <nav class="sidebar-nav">
         <RouterLink
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          :class="isActive(item.to)
-            ? 'bg-white/10 text-white'
-            : 'text-slate-400 hover:bg-white/5 hover:text-white'"
+          class="nav-item"
+          :class="isActive(item.to) ? 'nav-item--active' : ''"
         >
-          <component :is="item.icon" class="w-5 h-5 shrink-0" />
+          <component :is="item.icon" class="nav-icon" />
           {{ item.label }}
         </RouterLink>
       </nav>
 
-      <div class="px-4 py-4 border-t border-white/10">
-        <div class="flex items-center gap-3 px-3 py-2 mb-1">
-          <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
-            <span class="text-white text-sm font-semibold">{{ auth.user?.name?.charAt(0).toUpperCase() }}</span>
+      <!-- User section: avatar con iniziale, truncate su email lunga -->
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">
+            {{ auth.user?.name?.charAt(0).toUpperCase() }}
           </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-white truncate">{{ auth.user?.name }}</p>
-            <p class="text-xs text-slate-400 truncate">{{ auth.user?.email }}</p>
+          <div class="user-meta">
+            <span class="user-name">{{ auth.user?.name }}</span>
+            <span class="user-email">{{ auth.user?.email }}</span>
           </div>
         </div>
-        <button
-          @click="handleLogout"
-          class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-red-400 transition-colors"
-        >
-          <LogOut class="w-5 h-5 shrink-0" />
+        <button @click="handleLogout" class="logout-btn">
+          <LogOut class="nav-icon" />
           Esci
         </button>
       </div>
     </aside>
 
-    <!-- Main content -->
-    <main class="flex-1 overflow-auto">
+    <main class="main-content">
       <RouterView />
     </main>
   </div>
 </template>
+
+<style scoped>
+.app-shell { display: flex; min-height: 100vh; }
+
+/* Sidebar dark: massimo contrasto col contenuto chiaro, pattern consolidato SaaS */
+.sidebar {
+  width: 15rem;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: #0f172a;
+}
+
+.sidebar-logo {
+  height: 4rem;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.sidebar-logo-text {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.025em;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 1.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Nav item: 44px min height per accessibilità touch target */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.nav-item--active { background: rgba(99,102,241,0.2); color: #a5b4fc; }
+.nav-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; }
+
+.sidebar-footer {
+  padding: 1rem 0.75rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+}
+/* Avatar con colore brand: coerenza visiva con l'accento indigo */
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+}
+.user-meta { display: flex; flex-direction: column; min-width: 0; }
+.user-name { font-size: 0.8125rem; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-email { font-size: 0.75rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #94a3b8;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.15s, color 0.15s;
+}
+.logout-btn:hover { background: rgba(239,68,68,0.1); color: #f87171; }
+
+/* Main content: scrollabile indipendentemente dalla sidebar */
+.main-content { flex: 1; overflow-y: auto; background: #f8fafc; }
+</style>

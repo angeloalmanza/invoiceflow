@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { TrendingUp, Clock, CheckCircle, FileText } from 'lucide-vue-next'
+import { TrendingUp, Clock, CheckCircle, FileText, Users } from 'lucide-vue-next'
 import api from '@/api/client'
 
 const router = useRouter()
@@ -22,67 +22,178 @@ function fmt(val) {
 }
 
 const cards = [
-  { key: 'total_invoiced', label: 'Totale fatturato', icon: TrendingUp, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  { key: 'total_paid',     label: 'Incassato',        icon: CheckCircle, color: 'text-green-600',  bg: 'bg-green-50' },
-  { key: 'total_pending',  label: 'Da incassare',     icon: Clock,       color: 'text-amber-600',  bg: 'bg-amber-50' },
+  { key: 'total_invoiced', label: 'Totale fatturato', icon: TrendingUp, accent: '#4f46e5', bg: 'rgba(79,70,229,0.08)' },
+  { key: 'total_paid',     label: 'Incassato',        icon: CheckCircle, accent: '#16a34a', bg: 'rgba(22,163,74,0.08)' },
+  { key: 'total_pending',  label: 'Da incassare',     icon: Clock,       accent: '#d97706', bg: 'rgba(217,119,6,0.08)' },
+]
+
+const statusItems = [
+  { key: 'count_draft', label: 'Bozze',   color: '#6b7280' },
+  { key: 'count_sent',  label: 'Inviate', color: '#2563eb' },
+  { key: 'count_paid',  label: 'Pagate',  color: '#16a34a' },
 ]
 </script>
 
 <template>
-  <div class="p-8">
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-      <p class="text-gray-500 text-sm mt-1">Panoramica delle tue fatture</p>
-    </div>
+  <div class="page">
 
-    <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-      <div v-for="i in 3" :key="i" class="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
-        <div class="h-4 bg-gray-200 rounded w-24 mb-4"></div>
-        <div class="h-8 bg-gray-200 rounded w-32"></div>
+    <!-- Page header: titolo + saluto + CTA principale in linea -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Panoramica delle tue fatture</p>
       </div>
+      <button class="btn-primary" @click="router.push('/invoices/new')">
+        <FileText class="btn-icon" />
+        Nuova fattura
+      </button>
     </div>
 
-    <div v-else class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-      <div v-for="card in cards" :key="card.key"
-        class="bg-white rounded-xl border border-gray-200 p-6">
-        <div class="flex items-center justify-between mb-4">
-          <span class="text-sm font-medium text-gray-500">{{ card.label }}</span>
-          <div :class="[card.bg, 'p-2 rounded-lg']">
-            <component :is="card.icon" :class="[card.color, 'w-5 h-5']" />
+    <!-- Stat cards: skeleton durante loading, poi dati reali -->
+    <div class="stats-grid">
+      <template v-if="loading">
+        <div v-for="i in 3" :key="i" class="stat-card stat-card--skeleton">
+          <div class="skeleton-label"></div>
+          <div class="skeleton-value"></div>
+        </div>
+      </template>
+      <template v-else>
+        <!--
+          Icona colorata in alto a destra: affordance visiva immediata del tipo di metrica.
+          Numero in text-3xl: gerarchia chiara — il dato è il protagonista.
+        -->
+        <div v-for="card in cards" :key="card.key" class="stat-card">
+          <div class="stat-header">
+            <span class="stat-label">{{ card.label }}</span>
+            <div class="stat-icon-wrap" :style="{ background: card.bg }">
+              <component :is="card.icon" class="stat-icon" :style="{ color: card.accent }" />
+            </div>
+          </div>
+          <p class="stat-value">{{ fmt(stats?.[card.key]) }}</p>
+        </div>
+      </template>
+    </div>
+
+    <!-- Status card + CTA secondaria affiancati -->
+    <div class="bottom-row">
+      <!--
+        Stato fatture: 3 colonne con divisori — quick overview senza navigare.
+        Numeri grandi con colore semantico (grigio bozze, blu inviate, verde pagate).
+      -->
+      <div class="card status-card">
+        <h2 class="card-title">Stato fatture</h2>
+        <div class="status-row">
+          <div v-for="s in statusItems" :key="s.key" class="status-item">
+            <span class="status-count" :style="{ color: s.color }">
+              {{ loading ? '–' : (stats?.[s.key] ?? '–') }}
+            </span>
+            <span class="status-label">{{ s.label }}</span>
           </div>
         </div>
-        <p class="text-2xl font-bold text-gray-900">{{ fmt(stats?.[card.key]) }}</p>
       </div>
-    </div>
 
-    <!-- Status counts -->
-    <div class="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-      <h2 class="text-base font-semibold text-gray-900 mb-4">Stato fatture</h2>
-      <div class="flex gap-6">
-        <div class="text-center">
-          <p class="text-3xl font-bold text-gray-500">{{ stats?.count_draft ?? '–' }}</p>
-          <p class="text-sm text-gray-500 mt-1">Bozze</p>
-        </div>
-        <div class="text-center">
-          <p class="text-3xl font-bold text-blue-600">{{ stats?.count_sent ?? '–' }}</p>
-          <p class="text-sm text-gray-500 mt-1">Inviate</p>
-        </div>
-        <div class="text-center">
-          <p class="text-3xl font-bold text-green-600">{{ stats?.count_paid ?? '–' }}</p>
-          <p class="text-sm text-gray-500 mt-1">Pagate</p>
+      <!-- Quick actions: accesso rapido alle sezioni principali -->
+      <div class="card actions-card">
+        <h2 class="card-title">Azioni rapide</h2>
+        <div class="actions-list">
+          <button class="btn-primary btn-full" @click="router.push('/invoices/new')">
+            <FileText class="btn-icon" /> Nuova fattura
+          </button>
+          <button class="btn-secondary btn-full" @click="router.push('/clients')">
+            <Users class="btn-icon" /> Gestisci clienti
+          </button>
         </div>
       </div>
     </div>
 
-    <div class="flex gap-4">
-      <button @click="router.push('/invoices/new')"
-        class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
-        <FileText class="w-4 h-4" /> Nuova fattura
-      </button>
-      <button @click="router.push('/clients')"
-        class="px-4 py-2.5 border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-lg transition-colors">
-        Gestisci clienti
-      </button>
-    </div>
   </div>
 </template>
+
+<style scoped>
+.page { padding: 2.5rem; max-width: 72rem; }
+
+/* Header: title + CTA affiancati, flex justify-between */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+.page-title { font-size: 1.5rem; font-weight: 700; color: #111827; letter-spacing: -0.025em; }
+.page-subtitle { font-size: 0.875rem; color: #6b7280; margin-top: 0.25rem; }
+
+/* Stat grid: 3 colonne su md+ */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; }
+@media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; } }
+
+/* Stat card */
+.stat-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+}
+.stat-card--skeleton { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+.skeleton-label { height: 0.875rem; background: #e5e7eb; border-radius: 0.25rem; width: 7rem; margin-bottom: 1rem; }
+.skeleton-value { height: 1.75rem; background: #e5e7eb; border-radius: 0.25rem; width: 9rem; }
+
+.stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.stat-label { font-size: 0.8125rem; font-weight: 500; color: #6b7280; }
+.stat-icon-wrap { padding: 0.5rem; border-radius: 0.5rem; display: flex; }
+.stat-icon { width: 1.125rem; height: 1.125rem; }
+/* text-3xl per il numero: gerarchia forte, il dato è il protagonista */
+.stat-value { font-size: 1.75rem; font-weight: 700; color: #111827; letter-spacing: -0.03em; }
+
+/* Bottom row */
+.bottom-row { display: grid; grid-template-columns: 1fr 18rem; gap: 1.25rem; }
+@media (max-width: 768px) { .bottom-row { grid-template-columns: 1fr; } }
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+}
+.card-title { font-size: 0.9375rem; font-weight: 600; color: #111827; margin-bottom: 1.25rem; }
+
+/* Status row: 3 colonne con divisori verticali */
+.status-row { display: flex; gap: 0; }
+.status-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+.status-item:not(:last-child) { border-right: 1px solid #f3f4f6; }
+.status-count { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.status-label { font-size: 0.8125rem; color: #6b7280; margin-top: 0.375rem; }
+
+/* Actions */
+.actions-card { display: flex; flex-direction: column; }
+.actions-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.btn-full { width: 100%; justify-content: center; }
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  background: #4f46e5; color: #fff;
+  font-size: 0.875rem; font-weight: 600;
+  border: none; border-radius: 0.625rem;
+  cursor: pointer; transition: background 0.15s;
+}
+.btn-primary:hover { background: #4338ca; }
+
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.625rem 1.125rem;
+  background: #fff; color: #374151;
+  font-size: 0.875rem; font-weight: 500;
+  border: 1.5px solid #e5e7eb; border-radius: 0.625rem;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.btn-secondary:hover { background: #f9fafb; border-color: #d1d5db; }
+.btn-icon { width: 1rem; height: 1rem; }
+</style>

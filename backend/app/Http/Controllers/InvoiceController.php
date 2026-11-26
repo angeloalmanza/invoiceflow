@@ -7,6 +7,8 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class InvoiceController extends Controller
 {
@@ -23,10 +25,12 @@ class InvoiceController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         $data = $request->validate([
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => ['required', Rule::exists('clients', 'id')->where('user_id', $user->id)],
             'date'      => 'required|date',
-            'due_date'  => 'nullable|date',
+            'due_date'  => 'nullable|date|after_or_equal:date',
             'notes'     => 'nullable|string',
             'tax_rate'  => 'nullable|numeric|min:0|max:100',
             'items'     => 'required|array|min:1',
@@ -35,31 +39,19 @@ class InvoiceController extends Controller
             'items.*.unit_price'  => 'required|numeric|min:0',
         ]);
 
-        $number   = 'INV-' . str_pad($request->user()->invoices()->count() + 1, 4, '0', STR_PAD_LEFT);
-        $subtotal = collect($data['items'])->sum(fn($i) => $i['quantity'] * $i['unit_price']);
-        $taxRate  = $data['tax_rate'] ?? 0;
-        $taxAmount = round($subtotal * $taxRate / 100, 2);
-
-        $invoice = $request->user()->invoices()->create([
-            'client_id'  => $data['client_id'],
-            'number'     => $number,
-            'date'       => $data['date'],
-            'due_date'   => $data['due_date'] ?? null,
-            'notes'      => $data['notes'] ?? null,
-            'tax_rate'   => $taxRate,
-            'subtotal'   => $subtotal,
-            'tax_amount' => $taxAmount,
-            'total'      => $subtotal + $taxAmount,
-        ]);
-
-        foreach ($data['items'] as $item) {
-            $invoice->items()->create([
-                'description' => $item['description'],
-                'quantity'    => $item['quantity'],
-                'unit_price'  => $item['unit_price'],
-                'total'       => $item['quantity'] * $item['unit_price'],
+        $invoice = DB::transaction(function () use ($user, $data) {
+            $invoice = $user->invoices()->create([
+                'client_id' => $data['client_id'],
+                'number'    => $this->nextNumber($user),
+                'date'      => $data['date'],
+                'due_date'  => $data['due_date'] ?? null,
+                'notes'     => $data['notes'] ?? null,
             ]);
-        }
+
+            $this->syncItems($invoice, $data['items'], $data['tax_rate'] ?? 0);
+
+            return $invoice;
+        });
 
         return response()->json($invoice->load(['client', 'items']), 201);
     }
@@ -76,6 +68,8 @@ class InvoiceController extends Controller
         abort_unless($invoice->user_id === $request->user()->id, 403);
 
         $data = $request->validate([
+            'client_id' => ['sometimes', Rule::exists('clients', 'id')->where('user_id', $request->user()->id)],
+            'date'      => 'sometimes|date',
             'status'    => 'sometimes|in:draft,sent,paid',
             'due_date'  => 'nullable|date',
             'notes'     => 'nullable|string',
@@ -86,27 +80,22 @@ class InvoiceController extends Controller
             'items.*.unit_price'  => 'required_with:items|numeric|min:0',
         ]);
 
-        if (isset($data['items'])) {
-            $invoice->items()->delete();
-            $subtotal = 0;
-            foreach ($data['items'] as $item) {
-                $lineTotal = $item['quantity'] * $item['unit_price'];
-                $subtotal += $lineTotal;
-                $invoice->items()->create([...$item, 'total' => $lineTotal]);
+        DB::transaction(function () use ($invoice, $data) {
+            $items = $data['items'] ?? null;
+            $taxRate = $data['tax_rate'] ?? $invoice->tax_rate;
+            unset($data['items']);
+
+            $invoice->update($data);
+
+            // Totali ricalcolati ogni volta che cambiano righe o aliquota.
+            if ($items !== null) {
+                $this->syncItems($invoice, $items, $taxRate);
+            } elseif (array_key_exists('tax_rate', $data)) {
+                $this->syncItems($invoice, $invoice->items->map->only(['description', 'quantity', 'unit_price'])->all(), $taxRate);
             }
-            $taxRate   = $data['tax_rate'] ?? $invoice->tax_rate;
-            $taxAmount = round($subtotal * $taxRate / 100, 2);
-            $data      = array_merge($data, [
-                'subtotal'   => $subtotal,
-                'tax_rate'   => $taxRate,
-                'tax_amount' => $taxAmount,
-                'total'      => $subtotal + $taxAmount,
-            ]);
-        }
+        });
 
-        $invoice->update($data);
-
-        return response()->json($invoice->load(['client', 'items']));
+        return response()->json($invoice->fresh()->load(['client', 'items']));
     }
 
     public function destroy(Request $request, Invoice $invoice): JsonResponse
@@ -138,6 +127,42 @@ class InvoiceController extends Controller
             'count_draft'    => $user->invoices()->where('status', 'draft')->count(),
             'count_sent'     => $user->invoices()->where('status', 'sent')->count(),
             'count_paid'     => $user->invoices()->where('status', 'paid')->count(),
+        ]);
+    }
+
+    /** Prossimo numero libero dell'utente: massimo esistente + 1 (non il conteggio, che si rompe dopo le eliminazioni). */
+    private function nextNumber($user): string
+    {
+        $max = $user->invoices()->pluck('number')
+            ->map(fn ($n) => (int) preg_replace('/\D/', '', $n))
+            ->max() ?? 0;
+
+        return 'INV-' . str_pad($max + 1, 4, '0', STR_PAD_LEFT);
+    }
+
+    /** Sostituisce le righe e ricalcola subtotale, IVA e totale lato server. */
+    private function syncItems(Invoice $invoice, array $items, $taxRate): void
+    {
+        $invoice->items()->delete();
+
+        $subtotal = 0;
+        foreach ($items as $item) {
+            $lineTotal = round($item['quantity'] * $item['unit_price'], 2);
+            $subtotal += $lineTotal;
+            $invoice->items()->create([
+                'description' => $item['description'],
+                'quantity'    => $item['quantity'],
+                'unit_price'  => $item['unit_price'],
+                'total'       => $lineTotal,
+            ]);
+        }
+
+        $taxAmount = round($subtotal * $taxRate / 100, 2);
+        $invoice->update([
+            'subtotal'   => $subtotal,
+            'tax_rate'   => $taxRate,
+            'tax_amount' => $taxAmount,
+            'total'      => $subtotal + $taxAmount,
         ]);
     }
 }

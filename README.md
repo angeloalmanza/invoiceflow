@@ -5,7 +5,7 @@ Applicazione web per **gestire clienti e fatture**: crei un cliente, compili una
 Backend **Laravel** (API REST con token Sanctum) + frontend **Vue 3** (SPA). Interfaccia e PDF sono in italiano, importi in euro.
 
 - **App online:** <https://app-invoiceflow.netlify.app/> (frontend su Netlify)
-- **API in produzione:** `https://invoiceflow-api.onrender.com/api` (Render, piano che va in sospensione: la prima richiesta può metterci qualche decina di secondi, per questo il frontend mostra una schermata "Connecting to server..." all'avvio)
+- **API in produzione:** `https://invoiceflow-v6sd.onrender.com/api` (Render, piano che va in sospensione: la prima richiesta può metterci qualche decina di secondi, per questo il frontend mostra una schermata "Connecting to server..." all'avvio)
 
 <p align="center">
   <img src="docs/screenshots/1-dashboard.png" width="49%" alt="Dashboard">
@@ -119,7 +119,7 @@ Per provare l'app puoi usare il seeder oppure registrarti dalla schermata di reg
 
 | Variabile | Cosa fa |
 |---|---|
-| `VITE_API_URL` | Indirizzo base delle API, per esempio `https://invoiceflow-api.onrender.com/api`. Viene incorporata nella build. |
+| `VITE_API_URL` | Indirizzo base delle API, per esempio `https://invoiceflow-v6sd.onrender.com/api`. Viene incorporata nella build. |
 
 ## API
 

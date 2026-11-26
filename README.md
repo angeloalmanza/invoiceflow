@@ -1,4 +1,4 @@
-# 🧾 InvoiceFlow
+# InvoiceFlow
 
 Applicazione web per **gestire clienti e fatture**: crei un cliente, compili una fattura con più righe e IVA, ne segui lo stato (bozza → inviata → pagata), scarichi il PDF e controlli sulla dashboard quanto hai fatturato, incassato e ancora da incassare.
 
@@ -21,19 +21,20 @@ Backend **Laravel** (API REST con token Sanctum) + frontend **Vue 3** (SPA). Int
 
 ## Indice
 
-- [Cosa fa](#-cosa-fa)
-- [Stack](#-stack)
-- [Avvio rapido](#-avvio-rapido)
-- [Configurazione](#-configurazione)
-- [API](#-api)
-- [Modello dati](#-modello-dati)
-- [Come funziona](#-come-funziona)
-- [Test](#-test)
-- [Struttura del repository](#-struttura-del-repository)
-- [Deploy](#-deploy)
-- [Limiti noti e cose da fare](#-limiti-noti-e-cose-da-fare)
+- [Cosa fa](#cosa-fa)
+- [Stack](#stack)
+- [Avvio rapido](#avvio-rapido)
+- [Configurazione](#configurazione)
+- [API](#api)
+- [Modello dati](#modello-dati)
+- [Come funziona](#come-funziona)
+- [Test](#test)
+- [Struttura del repository](#struttura-del-repository)
+- [Deploy](#deploy)
+- [Limiti noti e cose da fare](#limiti-noti-e-cose-da-fare)
+- [Problemi trovati rileggendo il codice](#problemi-trovati-rileggendo-il-codice)
 
-## ✨ Cosa fa
+## Cosa fa
 
 | Sezione | Descrizione |
 |---|---|
@@ -47,7 +48,7 @@ Backend **Laravel** (API REST con token Sanctum) + frontend **Vue 3** (SPA). Int
 
 Numerazione automatica `INV-0001`, `INV-0002`, … indipendente per ogni utente. Ogni utente vede solo i propri clienti e le proprie fatture.
 
-## 🧰 Stack
+## Stack
 
 | Livello | Tecnologie |
 |---|---|
@@ -56,7 +57,7 @@ Numerazione automatica `INV-0001`, `INV-0002`, … indipendente per ogni utente.
 | **Frontend** | Vue 3.5 (Composition API), Vue Router 4, Pinia, Axios, Tailwind CSS 4, icone Lucide, Vite 8 |
 | **Infrastruttura** | Docker (nginx + PHP-FPM + supervisord), Docker Compose per lo sviluppo, hosting statico per la SPA |
 
-## 🚀 Avvio rapido
+## Avvio rapido
 
 ### Con Docker Compose
 
@@ -103,7 +104,7 @@ In locale il frontend punta a `http://localhost:8000/api` se `VITE_API_URL` non 
 
 Per provare l'app puoi usare il seeder oppure registrarti dalla schermata di registrazione.
 
-## ⚙️ Configurazione
+## Configurazione
 
 **Backend** (`backend/.env`, modello in `.env.example`)
 
@@ -120,7 +121,7 @@ Per provare l'app puoi usare il seeder oppure registrarti dalla schermata di reg
 |---|---|
 | `VITE_API_URL` | Indirizzo base delle API, per esempio `https://invoiceflow-api.onrender.com/api`. Viene incorporata nella build. |
 
-## 🔌 API
+## API
 
 Tutte le risposte sono JSON. Le rotte protette richiedono `Authorization: Bearer <token>`.
 
@@ -141,7 +142,7 @@ Tutte le risposte sono JSON. Le rotte protette richiedono `Authorization: Bearer
 
 Gli stati validi sono `draft`, `sent`, `paid`. Se la validazione fallisce l'API risponde `422` con gli errori per campo; se una risorsa appartiene a un altro utente risponde `403`; oltre il limite di richieste sulle rotte `auth` risponde `429`.
 
-## 🗂️ Modello dati
+## Modello dati
 
 ```
 users ──< clients ──< invoices ──< invoice_items
@@ -158,7 +159,7 @@ users ──< clients ──< invoices ──< invoice_items
 
 Importi in `decimal(10,2)`. Le eliminazioni sono a cascata: cancellare un cliente cancella anche le sue fatture e le relative righe.
 
-## 🔧 Come funziona
+## Come funziona
 
 - **I totali li calcola il server.** Il frontend mostra un'anteprima mentre si compila, ma `subtotal`, `tax_amount` e `total` vengono ricalcolati dal backend dalle righe e dall'aliquota (IVA arrotondata a 2 decimali). Il client non può imporre un totale diverso.
 - **Isolamento per utente.** Ogni controller controlla che la risorsa appartenga a `request()->user()` e restituisce `403` altrimenti; gli elenchi partono sempre dalle relazioni dell'utente. Anche il `client_id` di una fattura (in creazione e in modifica) deve appartenere all'utente, altrimenti la richiesta è respinta con `422`.
@@ -168,7 +169,7 @@ Importi in `decimal(10,2)`. Le eliminazioni sono a cascata: cancellare un client
 - **Cold start di Render.** `App.vue` mostra una schermata di caricamento finché il backend non risponde, così l'utente non vede errori mentre il servizio si risveglia.
 - **Un solo container per il backend.** `docker/start.sh` mette in cache configurazione e rotte, esegue `migrate --force` e lancia `supervisord`, che tiene in piedi nginx e PHP-FPM.
 
-## ✅ Test
+## Test
 
 ```bash
 cd backend
@@ -177,7 +178,7 @@ vendor/bin/phpunit      # oppure: composer test
 
 21 test di funzionalità su database SQLite in memoria: registrazione, login e logout, rotte protette, CRUD dei clienti, calcolo dei totali lato server, numerazione dopo le eliminazioni e tra utenti diversi, cliente di un altro utente respinto, ricalcolo alla modifica di righe e aliquota, avanzamento di stato e statistiche, isolamento tra utenti (lettura, modifica, eliminazione, PDF) e generazione del PDF. La CI di GitHub Actions (`.github/workflows/ci.yml`) esegue i test del backend e la build del frontend a ogni push.
 
-## 📁 Struttura del repository
+## Struttura del repository
 
 ```
 invoiceflow/
@@ -203,12 +204,12 @@ invoiceflow/
     └── public/_redirects     fallback SPA per l'hosting statico
 ```
 
-## 🌍 Deploy
+## Deploy
 
 - **Backend:** si costruisce con `backend/Dockerfile` (qualunque servizio che esegue container, per esempio Render). Variabili da impostare: `APP_KEY`, `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL`, `FRONTEND_URL`, `DB_CONNECTION=pgsql` con i dati del database, `SESSION_DRIVER=file`, `CACHE_STORE=file`, `QUEUE_CONNECTION=sync`. Il controllo di salute può puntare a `/health`.
 - **Frontend:** `cd frontend && npm run build` produce `dist/`, da pubblicare su un hosting statico. `public/_redirects` (`/* /index.html 200`) riporta ogni percorso alla SPA. `VITE_API_URL` va impostata **prima** della build.
 
-## 🚧 Limiti noti e cose da fare
+## Limiti noti e cose da fare
 
 Elenco onesto di ciò che il codice oggi non fa:
 
@@ -218,3 +219,12 @@ Elenco onesto di ciò che il codice oggi non fa:
 - **Un solo formato**: valuta euro e testi in italiano sono fissi, non c'è multilingua né multivaluta.
 - **Dati del mittente assenti nel PDF** a parte il nome utente: mancano ragione sociale, P.IVA e IBAN di chi emette la fattura.
 - **Nessun test del frontend**: la CI ne verifica solo la build.
+
+## Problemi trovati rileggendo il codice
+
+Questo README è nato rileggendo il progetto per documentarlo. Quello che ho trovato, e come l'ho chiuso (ognuno ha un test che lo copre):
+
+- **Fuga di dati tra utenti.** Alla creazione di una fattura `client_id` era controllato solo con `exists`, senza verificare che il cliente fosse dell'utente. Con un id altrui (sono numerici e progressivi) si poteva collegare quel cliente a una propria fattura, e la risposta restituiva nome, email, telefono, indirizzo e P.IVA di un cliente di un altro utente. Ora il cliente deve appartenere a chi fa la richiesta (`test_cannot_use_another_users_client`). La stessa regola vale in modifica, da quando la modifica accetta il cliente: prima la modifica ignorava `client_id`, quindi lì il buco non c'era, ma sarebbe comparso aprendo quel campo senza la regola (`test_cannot_move_invoice_to_another_users_client`).
+- **Numeri fattura duplicati.** Il numero era "conteggio + 1": dopo l'eliminazione di una fattura intermedia il numero successivo poteva coincidere con uno esistente e la creazione falliva. In più l'unicità era globale, quindi due utenti si contendevano `INV-0001`. Ora è "massimo + 1" per utente, con unicità sulla coppia utente e numero (`test_number_does_not_collide_after_deleting_an_invoice`, `test_two_users_can_both_have_inv_0001`).
+- **Totali non ricalcolati.** Modificando solo l'aliquota IVA, subtotale, IVA e totale restavano quelli vecchi. Ora si ricalcolano a ogni cambio di righe o aliquota (`test_changing_only_tax_rate_recalculates_totals`).
+- **Modifica fattura inutilizzabile.** Le date arrivavano come data completa con ora e il campo data restava vuoto, quindi il form non si poteva salvare. L'ho notato facendo gli screenshot, non leggendo il codice, ed è l'unico di questa lista senza un test automatico (è un difetto del frontend, che non ha test).

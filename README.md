@@ -175,7 +175,7 @@ cd backend
 vendor/bin/phpunit      # oppure: composer test
 ```
 
-20 test di funzionalità su database SQLite in memoria: registrazione, login e logout, rotte protette, CRUD dei clienti, calcolo dei totali lato server, numerazione dopo le eliminazioni e tra utenti diversi, cliente di un altro utente respinto, ricalcolo alla modifica di righe e aliquota, avanzamento di stato e statistiche, isolamento tra utenti (lettura, modifica, eliminazione, PDF) e generazione del PDF. La CI di GitHub Actions (`.github/workflows/ci.yml`) esegue i test del backend e la build del frontend a ogni push.
+21 test di funzionalità su database SQLite in memoria: registrazione, login e logout, rotte protette, CRUD dei clienti, calcolo dei totali lato server, numerazione dopo le eliminazioni e tra utenti diversi, cliente di un altro utente respinto, ricalcolo alla modifica di righe e aliquota, avanzamento di stato e statistiche, isolamento tra utenti (lettura, modifica, eliminazione, PDF) e generazione del PDF. La CI di GitHub Actions (`.github/workflows/ci.yml`) esegue i test del backend e la build del frontend a ogni push.
 
 ## 📁 Struttura del repository
 

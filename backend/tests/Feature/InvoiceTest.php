@@ -179,4 +179,17 @@ class InvoiceTest extends TestCase
         $this->get("/api/invoices/{$id}/pdf")
             ->assertOk()->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_pdf_template_shows_status_in_italian(): void
+    {
+        [$user, $client] = $this->actingUser();
+        $invoice = $user->invoices()->create([
+            'client_id' => $client->id, 'number' => 'INV-0001', 'date' => '2026-05-01', 'status' => 'sent',
+        ]);
+
+        $html = view('invoices.pdf', ['invoice' => $invoice->load(['client', 'items', 'user'])])->render();
+
+        $this->assertStringContainsString('Inviata', $html);
+        $this->assertStringNotContainsString('Sent', $html);
+    }
 }

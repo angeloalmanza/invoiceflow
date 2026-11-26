@@ -46,7 +46,7 @@
             @endif
             <br>
             <span class="badge badge-{{ $invoice->status }}">
-                {{ ucfirst($invoice->status) }}
+                {{ ['draft' => 'Bozza', 'sent' => 'Inviata', 'paid' => 'Pagata'][$invoice->status] ?? ucfirst($invoice->status) }}
             </span>
         </div>
     </div>

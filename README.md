@@ -7,6 +7,18 @@ Backend **Laravel** (API REST con token Sanctum) + frontend **Vue 3** (SPA). Int
 - **App online:** <https://app-invoiceflow.netlify.app/> (frontend su Netlify)
 - **API in produzione:** `https://invoiceflow-api.onrender.com/api` (Render, piano che va in sospensione: la prima richiesta può metterci qualche decina di secondi, per questo il frontend mostra una schermata "Connecting to server..." all'avvio)
 
+<p align="center">
+  <img src="docs/screenshots/1-dashboard.png" width="49%" alt="Dashboard">
+  <img src="docs/screenshots/2-fatture.png" width="49%" alt="Elenco fatture con filtri per stato">
+  <img src="docs/screenshots/3-clienti.png" width="49%" alt="Clienti">
+  <img src="docs/screenshots/5-modifica.png" width="49%" alt="Editor fattura con riepilogo in tempo reale">
+  <img src="docs/screenshots/4-dettaglio.png" width="49%" alt="Dettaglio fattura">
+  <img src="docs/screenshots/6-pdf.png" width="24%" alt="PDF generato">
+  <img src="docs/screenshots/0-login.png" width="49%" alt="Login">
+</p>
+
+<sub>Screenshot con dati di esempio inventati.</sub>
+
 ## Indice
 
 - [Cosa fa](#-cosa-fa)

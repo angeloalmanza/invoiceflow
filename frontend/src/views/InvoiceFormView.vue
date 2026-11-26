@@ -39,8 +39,8 @@ onMounted(async () => {
     const { data: inv } = await api.get(`/invoices/${route.params.id}`)
     form.value = {
       client_id: inv.client_id,
-      date: inv.date,
-      due_date: inv.due_date || '',
+      date: String(inv.date).slice(0, 10),
+      due_date: inv.due_date ? String(inv.due_date).slice(0, 10) : '',
       tax_rate: inv.tax_rate,
       notes: inv.notes || '',
       items: inv.items.map(i => ({ description: i.description, quantity: i.quantity, unit_price: i.unit_price })),
